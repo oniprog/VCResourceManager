@@ -9,46 +9,46 @@ namespace VCResourceManager.ResourceFilter
     // .rcファイルを生成する(更新)
     public class ResourceGenerateRcFilter : ResourceFilterBase
     {
-        private StreamWriter mSW = null;
-        private String mCommonFolder;
-        private String mLang;
-        private bool mOutputFlag;
-        private ResourceFileMaster.EMode mMode;
+        private readonly StreamWriter _mSw;
+        private readonly String _mCommonFolder;
+        private String _mLang;
+        private bool _mOutputFlag;
+        private ResourceFileMaster.EMode _mMode;
 
-        private FileInfo[] mListCommonFile;
-        private HashSet<string> mSetOutputFile = new HashSet<string>();
+        private readonly FileInfo[] _mListCommonFile;
+        private readonly HashSet<string> _mSetOutputFile = new HashSet<string>();
 
-        private HashSet<string> mSetSelected;
+        private readonly HashSet<string> _mSetSelected;
 
         public ResourceGenerateRcFilter(String strOutputPath, String strCommonFolder, HashSet<string> setSelected)
         {
-            mSW = new StreamWriter(strOutputPath, false, Encoding.Unicode);
-            mCommonFolder = strCommonFolder;
-            mOutputFlag = true;
-            mSetSelected = setSelected;
+            _mSw = new StreamWriter(strOutputPath, false, Encoding.Unicode);
+            _mCommonFolder = strCommonFolder;
+            _mOutputFlag = true;
+            _mSetSelected = setSelected;
 
-            mListCommonFile = new DirectoryInfo(mCommonFolder).GetFiles("*.txt");
+            _mListCommonFile = new DirectoryInfo(_mCommonFolder).GetFiles("*.txt");
         }
 
         public override void Process(String strLine, ResourceFileMaster.EMode mode)
         {
-            if (!mOutputFlag)
+            if (!_mOutputFlag)
             {
-                if (mMode == mode)
+                if (_mMode == mode)
                     return;
-                mOutputFlag = true;
+                _mOutputFlag = true;
             }
-            mSW.WriteLine(strLine);
+            _mSw.WriteLine(strLine);
         }
         public override void BeginLang(String strLang)
         {
-            mLang = strLang;
+            _mLang = strLang;
         }
         public override void BeginOutputName(ResourceFileMaster.EMode mode, String strOutputName)
         {
-            if (!mSetSelected.Contains(strOutputName))
+            if (!_mSetSelected.Contains(strOutputName))
             {
-                mOutputFlag = true;
+                _mOutputFlag = true;
                 return;
             }
 
@@ -70,17 +70,17 @@ namespace VCResourceManager.ResourceFilter
 
             if (!IsExistFile(strOutputName))
             {
-                mOutputFlag = true;
+                _mOutputFlag = true;
                 return;
             }
 
-            mOutputFlag = false;
-            mMode = mode;
+            _mOutputFlag = false;
+            _mMode = mode;
 
-            String strCheckName = mLang + "." + strNumber + "." + strOutputName;
-            if (mSetOutputFile.Contains(strCheckName))
+            String strCheckName = _mLang + "." + strNumber + "." + strOutputName;
+            if (_mSetOutputFile.Contains(strCheckName))
                 return;
-            mSetOutputFile.Add(strCheckName);
+            _mSetOutputFile.Add(strCheckName);
 
             OutputExistFile(strOutputName, strNumber);
         }
@@ -88,42 +88,31 @@ namespace VCResourceManager.ResourceFilter
         // 対応ファイルの存在確認
         private bool IsExistFile(String strOutputName)
         {
-            foreach (var strFile in mListCommonFile)
-            {
-                var split = strFile.Name.Split('.');
-                if (split.Length != 4)
-                    continue;
-
-                var strHead = split[0];
-                if (strHead == strOutputName)
-                    return true;
-            }
-
-            return false;
+            return (from strFile in _mListCommonFile select strFile.Name.Split('.') into split where split.Length == 4 select split[0]).Any(strHead => strHead == strOutputName);
         }
 
         // 対応ファイルの出力
         private void OutputExistFile(String strOutputName, String strNumber)
         {
-            var strSearchName = mCommonFolder + @"\" + strOutputName + "." + strNumber + "." + mLang + ".txt";
+            var strSearchName = _mCommonFolder + @"\" + strOutputName + "." + strNumber + "." + _mLang + ".txt";
             if (!File.Exists(strSearchName))
                 return;
 
-            using (StreamReader sr = new StreamReader(strSearchName, Encoding.UTF8))
+            using (var sr = new StreamReader(strSearchName, Encoding.UTF8))
             {
                 while (true)
                 {
                     String strLine = sr.ReadLine();
                     if (strLine == null)
                         break;
-                    mSW.WriteLine(strLine);
+                    _mSw.WriteLine(strLine);
                 }
             }
         }
 
         public override void EndProcess()
         {
-            this.mSW.Close();
+            _mSw.Close();
         }
     }
 }

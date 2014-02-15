@@ -347,9 +347,9 @@ namespace VCResourceManager
 
             // ファイルよりIDを抽出する
             var master = new ResourceFileMaster();
-            var filter = new ResourceCollectIDFilter();
+            var filter = new ResourceCollectIdFilter();
             master.ParseRcFile(_mCase.GetRcPath(), filter);
-            var setId2 = filter.GetSetID();
+            var setId2 = filter.GetSetId();
 
             // setID2 - setID1 を計算する
             foreach (var id1 in setId1 ) 

@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 using System.IO;
 
@@ -9,16 +8,16 @@ namespace VCResourceManager.ResourceFilter
     // RCファイルより抽出するフィルタ
     public class ResourceExtractFilter : ResourceFilterBase
     {
-        private String mLang;
-        private StreamWriter mSW;
-        private ResourceFileMaster.EMode mMode;
-        private String mOutputFolder;
-        private HashSet<string> mSetExtractName = new HashSet<string>();
+        private String _mLang;
+        private StreamWriter _mSw;
+        private ResourceFileMaster.EMode _mMode;
+        private readonly String _mOutputFolder;
+        private readonly HashSet<string> _mSetExtractName = new HashSet<string>();
 
         public ResourceExtractFilter(String strOutputFolder, HashSet<string> setExtractName)
         {
-            mSetExtractName = setExtractName;
-            mOutputFolder = strOutputFolder;
+            _mSetExtractName = setExtractName;
+            _mOutputFolder = strOutputFolder;
             if (!Directory.Exists(strOutputFolder))
             {
                 Directory.CreateDirectory(strOutputFolder);
@@ -27,23 +26,23 @@ namespace VCResourceManager.ResourceFilter
 
         public override void Process(String strLine, ResourceFileMaster.EMode mode)
         {
-            if (mSW != null)
+            if (_mSw != null)
             {
-                if (mMode != mode)
+                if (_mMode != mode)
                 {
-                    mSW.Close();
-                    mSW = null;
+                    _mSw.Close();
+                    _mSw = null;
                 }
                 else
                 {
-                    mSW.WriteLine(strLine);
+                    _mSw.WriteLine(strLine);
                 }
             }
         }
         public override void BeginLang(String strLang)
         {
             Close();
-            mLang = strLang;
+            _mLang = strLang;
         }
 
         public override void EndProcess()
@@ -53,16 +52,16 @@ namespace VCResourceManager.ResourceFilter
 
         private void Close()
         {
-            if (mSW != null)
+            if (_mSw != null)
             {
-                mSW.Close();
-                mSW = null;
+                _mSw.Close();
+                _mSw = null;
             }
         }
 
         public override void BeginOutputName(ResourceFileMaster.EMode mode, String strOutputName)
         {
-            if (!mSetExtractName.Contains(strOutputName))
+            if (!_mSetExtractName.Contains(strOutputName))
             {
                 Close();
                 return;
@@ -71,30 +70,30 @@ namespace VCResourceManager.ResourceFilter
             String strFileName = null;
             if (mode == ResourceFileMaster.EMode.InDialogIn1)
             {
-                strFileName = strOutputName + ".1." + mLang + ".txt";
+                strFileName = strOutputName + ".1." + _mLang + ".txt";
             }
             else if (mode == ResourceFileMaster.EMode.InDialogInfoIn1)
             {
-                strFileName = strOutputName + ".2." + mLang + ".txt";
+                strFileName = strOutputName + ".2." + _mLang + ".txt";
             }
             else if (mode == ResourceFileMaster.EMode.InDesignInfoIn1)
             {
-                strFileName = strOutputName + ".3." + mLang + ".txt";
+                strFileName = strOutputName + ".3." + _mLang + ".txt";
             }
 
             if (strFileName == null)
                 return;
 
-            mMode = mode;
+            _mMode = mode;
 
             Close();
 
             // すでに出力したファイルには追加書き込みとする
-            bool bAppend = mSetExtractName.Contains(strFileName);
-            mSW = new StreamWriter(mOutputFolder + @"\\" + strFileName, bAppend, Encoding.UTF8);
+            bool bAppend = _mSetExtractName.Contains(strFileName);
+            _mSw = new StreamWriter(_mOutputFolder + @"\\" + strFileName, bAppend, Encoding.UTF8);
             if (bAppend)
-                mSW.WriteLine();    // 空行を入れておく
-            mSetExtractName.Add(strFileName);
+                _mSw.WriteLine();    // 空行を入れておく
+            _mSetExtractName.Add(strFileName);
         }
     }
 }

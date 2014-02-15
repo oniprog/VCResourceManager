@@ -1,9 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.IO;
-using System.Text.RegularExpressions;
 
 namespace VCResourceManager.ResourceFilter
 {
@@ -15,7 +10,7 @@ namespace VCResourceManager.ResourceFilter
         public abstract void BeginOutputName(ResourceFileMaster.EMode mode, String strOutputName);
         public virtual void EndProcess() { }
 
-        public bool bDialogInfoEndFlag;
+        public bool DialogInfoEndFlag;
     }
 
 

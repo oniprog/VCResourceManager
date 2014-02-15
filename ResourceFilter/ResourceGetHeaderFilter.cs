@@ -1,21 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.IO;
 
 namespace VCResourceManager.ResourceFilter
 {
     // ヘッダーを集めるフィルタ
     public class ResourceGetHeaderFilter : ResourceFilterBase
     {
-        private String mCurLang;
-        private List<HeaderList> mListHeader = new List<HeaderList>();
-        private HeaderList mCurHeaderList;
+        private String _mCurLang;
+        private readonly List<HeaderList> _mListHeader = new List<HeaderList>();
+        private HeaderList _mCurHeaderList;
 
         public List<HeaderList> GetHeaderListList()
         {
-            return mListHeader;
+            return _mListHeader;
         }
 
         public override void Process(String strLine, ResourceFileMaster.EMode mode)
@@ -24,59 +21,59 @@ namespace VCResourceManager.ResourceFilter
         }
         public override void BeginLang(String strLang)
         {
-            mCurLang = strLang;
+            _mCurLang = strLang;
         }
         public override void BeginOutputName(ResourceFileMaster.EMode mode, String strOutputName)
         {
-            if (mCurHeaderList == null || mCurHeaderList.GetLang() != mCurLang)
+            if (_mCurHeaderList == null || _mCurHeaderList.GetLang() != _mCurLang)
             {
-                mCurHeaderList = null;
-                for (int it = 0; it < mListHeader.Count; ++it)
+                _mCurHeaderList = null;
+                foreach (HeaderList t in _mListHeader)
                 {
-                    if (mListHeader[it].GetLang() == mCurLang)
+                    if (t.GetLang() == _mCurLang)
                     {
-                        mCurHeaderList = mListHeader[it];
+                        _mCurHeaderList = t;
                         break;
                     }
                 }
-                if (mCurHeaderList == null)
+                if (_mCurHeaderList == null)
                 {
-                    HeaderList pListNew = new HeaderList(mCurLang);
-                    mListHeader.Add(pListNew);
-                    mCurHeaderList = pListNew;
+                    var pListNew = new HeaderList(_mCurLang);
+                    _mListHeader.Add(pListNew);
+                    _mCurHeaderList = pListNew;
                 }
             }
 
-            mCurHeaderList.AddHeader(strOutputName);
+            _mCurHeaderList.AddHeader(strOutputName);
         }
     }
 
     public class HeaderList
     {
-        private String mLang;
+        private readonly String _mLang;
 
-        private HashSet<string> mSetHeader = new HashSet<string>();
-        private List<string> mListHeader = new List<string>();
+        private readonly HashSet<string> _mSetHeader = new HashSet<string>();
+        private readonly List<string> _mListHeader = new List<string>();
 
-        public HeaderList(String lang_)
+        public HeaderList(String lang)
         {
-            mLang = lang_;
+            _mLang = lang;
         }
         public List<string> GetHeaderList()
         {
-            return mListHeader;
+            return _mListHeader;
         }
         public String GetLang()
         {
-            return mLang;
+            return _mLang;
         }
         public void AddHeader(String strHeader)
         {
-            if (mSetHeader.Contains(strHeader))
+            if (_mSetHeader.Contains(strHeader))
                 return;
 
-            mSetHeader.Add(strHeader);
-            mListHeader.Add(strHeader);
+            _mSetHeader.Add(strHeader);
+            _mListHeader.Add(strHeader);
         }
     }
 }

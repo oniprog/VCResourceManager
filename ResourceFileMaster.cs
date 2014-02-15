@@ -48,14 +48,15 @@ namespace VCResourceManager
             InDesignInfoIn1     // デザイン情報リソース内の1つ内
         }
 
-        public void ParseRcFile(String strPath, ResourceFilterBase filter)
+		// ファイルのエンコーディングを判定しつつファイルを開く
+        private bool DecideFileLang(string strPath)
         {
-            _mFile = new ReadFileCache();
-
+			// ファイルのエンコードを調べる
+			// 試し読みして決定する
             var patternTest = new Regex("Microsoft Visual C");
             {
                 if (!_mFile.OpenFile(strPath, Encoding.Unicode))
-                    return;
+                    return false;
 
                 bool bFind = false;
                 int nCnt = 0;
@@ -72,14 +73,28 @@ namespace VCResourceManager
                 }
                 if (bFind)
                 {
+					// 読み進めた分を戻す
                     _mFile.GoBackward(nCnt);
                 }
                 else
                 {
+					// ダメならばSJISで読むことにする
                     if (!_mFile.OpenFile(strPath, Encoding.GetEncoding("SJIS")))
-                        return;
+                        return false;
                 }
             }
+            return true;
+        }
+
+		// rcファイルの解析
+        public void ParseRcFile(String strPath, ResourceFilterBase filter)
+        {
+            _mFile = new ReadFileCache();
+
+			// エンコーディングを見つつファイルを開く
+            if (!DecideFileLang(strPath))
+                return;
+
             try
             {
                 var mode = EMode.Normal;
@@ -167,10 +182,10 @@ namespace VCResourceManager
             if (strLine.Length == 0 )
             {
                 mode = EMode.InDialogIn1;
+                strOutputName = ParseOutputName(filter, mode);
 
-                strOutputName = ParseOutputName(filter, mode, strOutputName);
                 if ( strOutputName.Length  == 0 )
-                    mode = EMode.InDialog;
+                    mode = EMode.InDialog; // 戻す
             }           
             else if (_patternEndDialog.IsMatch(strLine))
             {
@@ -194,10 +209,9 @@ namespace VCResourceManager
         }
 
         // OutputNameを検索する
-        private string ParseOutputName(ResourceFilterBase filter, EMode mode, String strOutputName)
+        private string ParseOutputName(ResourceFilterBase filter, EMode mode)
         {
-            if (strOutputName == null) throw new ArgumentNullException("strOutputName");
-            strOutputName = "";
+            string strOutputName = "";
             int nCnt = 1;
             for (; ; ++nCnt)
             {
@@ -212,6 +226,7 @@ namespace VCResourceManager
                 if (_patternEndDialog.IsMatch(strLine))
                     break;
             }
+			// 読み進めた分を戻す
             _mFile.GoBackward(nCnt);
             return strOutputName;
         }
@@ -224,14 +239,14 @@ namespace VCResourceManager
             if (strLine.Length == 0)
             {
                 mode = EMode.InDialogInfoIn1;
-                strOutputName = ParseOutputName(filter, mode, strOutputName);
+                strOutputName = ParseOutputName(filter, mode);
                 if (strOutputName.Length == 0)
                 {
-                    mode = EMode.InDialogInfo;
+                    mode = EMode.InDialogInfo; // 戻す
                 }
                 else
                 {
-                    filter.bDialogInfoEndFlag = false;
+                    filter.DialogInfoEndFlag = false;
                 }
             }
             else if (_patternEndDialogInfo.IsMatch(strLine))
@@ -248,10 +263,10 @@ namespace VCResourceManager
             // DialogInfo一つ内
             if (_patternEndInDialog1.IsMatch(strLine))
             {
-                filter.bDialogInfoEndFlag = true;
+                filter.DialogInfoEndFlag = true;
                 filter.Process(strLine, mode);
             }
-            else if (filter.bDialogInfoEndFlag && strLine.Length == 0)
+            else if (filter.DialogInfoEndFlag && strLine.Length == 0)
             {
                 mode = EMode.InDialogInfo;
                 _mFile.GoBackward(1);

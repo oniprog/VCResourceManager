@@ -1,42 +1,40 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.IO;
 
 namespace VCResourceManager.ResourceFilter
 {
     // ファイルからデータを読み込む
     public class ResourceReadDataFilter : ResourceFilterBase
     {
-        private HeaderDataList mListHeaderData = new HeaderDataList();
-        private List<string> mBody;
-        private String mLang;
-        private String mDataName;
-        private ResourceFileMaster.EMode mMode;
-        private HeaderData mHeaderData;
+        private readonly HeaderDataList _mListHeaderData = new HeaderDataList();
+        private List<string> _mBody;
+        private String _mLang;
+        private String _mDataName;
+        private ResourceFileMaster.EMode _mMode;
+        private HeaderData _mHeaderData;
 
         public override void Process(String strLine, ResourceFileMaster.EMode mode)
         {
-            if (mode != mMode)
+            if (mode != _mMode)
             {
-                if (mBody != null)
+                if (_mBody != null)
                 {
-                    mHeaderData.SetBody(mBody.ToArray());
-                    mBody = null;
+                    _mHeaderData.SetBody(_mBody.ToArray());
+                    _mBody = null;
                 }
             }
-            if (mBody != null)
-                mBody.Add(strLine);
+            if (_mBody != null)
+                _mBody.Add(strLine);
         }
         public override void BeginLang(String strLang)
         {
-            if (mBody != null)
+            if (_mBody != null)
             {
-                mHeaderData.SetBody(mBody.ToArray());
-                mBody = null;
+                _mHeaderData.SetBody(_mBody.ToArray());
+                _mBody = null;
             }
-            mLang = strLang;
+            _mLang = strLang;
         }
         public override void EndProcess()
         {
@@ -60,86 +58,83 @@ namespace VCResourceManager.ResourceFilter
                 return;
             }
             
-            if (mBody != null)
+            if (_mBody != null)
             {
-                mHeaderData.SetBody(mBody.ToArray());
-                mBody = null;
+                _mHeaderData.SetBody(_mBody.ToArray());
+                _mBody = null;
             }
 
-            mDataName = strOutputName + "." + strNumber + "." + mLang;
-            mHeaderData = mListHeaderData.GetHeaderData(mLang, mDataName);
-            if (mHeaderData.GetBody() == null)
-                mBody = new List<string>();
-            else 
-                mBody = new List<string>(mHeaderData.GetBody());
-            mMode = mode;
+            _mDataName = strOutputName + "." + strNumber + "." + _mLang;
+            _mHeaderData = _mListHeaderData.GetHeaderData(_mLang, _mDataName);
+            _mBody = _mHeaderData.GetBody() == null ? new List<string>() : new List<string>(_mHeaderData.GetBody());
+            _mMode = mode;
 
         }
 
         // 読み込んだデータを返す
         public HeaderDataList GetHeaderDataList()
         {
-            return mListHeaderData;
+            return _mListHeaderData;
         }
     }
 
     // データ保持クラス
     public class HeaderData
     {
-        private String mHeader;
-        private String[] mListBody;
+        private readonly String _mHeader;
+        private String[] _mListBody;
 
         public HeaderData(String strHeader)
         {
-            mHeader = strHeader;
+            _mHeader = strHeader;
         }
 
         public void SetBody( string[] listBody) {
-            mListBody = listBody;
+            _mListBody = listBody;
         }
 
         public String GetHeader()
         {
-            return mHeader;
+            return _mHeader;
         }
         public String[] GetBody()
         {
-            return mListBody;
+            return _mListBody;
         }
     }
     public class HeaderDataList
     {
-        private Dictionary<String, List<HeaderData>> mDicHeaderData = new Dictionary<String, List<HeaderData>>();
+        private readonly Dictionary<String, List<HeaderData>> _mDicHeaderData = new Dictionary<String, List<HeaderData>>();
 
         public void Add(string strLang, HeaderData data)
         {
-            if (!mDicHeaderData.ContainsKey(strLang))
+            if (!_mDicHeaderData.ContainsKey(strLang))
             {
-                mDicHeaderData.Add(strLang, new List<HeaderData>());
+                _mDicHeaderData.Add(strLang, new List<HeaderData>());
             }
-            mDicHeaderData[strLang].Add(data);
+            _mDicHeaderData[strLang].Add(data);
         }
 
         // HeaderDataを作成して返す
         public HeaderData GetHeaderData(string strLang, string strHeader)
         {
-            if (!mDicHeaderData.ContainsKey(strLang))
+            if (!_mDicHeaderData.ContainsKey(strLang))
             {
-                HeaderData data = new HeaderData(strHeader);
+                var data = new HeaderData(strHeader);
                 Add(strLang, data);
                 return data;
             }
             else
             {
-                var listHeaderData = mDicHeaderData[strLang];
+                var listHeaderData = _mDicHeaderData[strLang];
                 foreach (var headerdata in listHeaderData)
                 {
                     if (headerdata.GetHeader() == strHeader)
                         return headerdata;
                 }
 
-                HeaderData data = new HeaderData(strHeader);
-                mDicHeaderData[strLang].Add(data);
+                var data = new HeaderData(strHeader);
+                _mDicHeaderData[strLang].Add(data);
                 return data;
             }
         }
@@ -149,10 +144,10 @@ namespace VCResourceManager.ResourceFilter
         public HashSet<string> CompareHeaderDataList(HeaderDataList other)
         {
             // すべてのヘッダーを得る
-            HashSet<string> setDiff = new HashSet<string>();
+            var setDiff = new HashSet<string>();
 
             // 比較していく
-            foreach (var listHeaderData in mDicHeaderData.Values)
+            foreach (var listHeaderData in _mDicHeaderData.Values)
             {
                 foreach (var headerdata in listHeaderData)
                 {
@@ -164,7 +159,7 @@ namespace VCResourceManager.ResourceFilter
 
                     bool bFind = false;
 
-                    foreach (var listHeaderData2 in other.mDicHeaderData.Values)
+                    foreach (var listHeaderData2 in other._mDicHeaderData.Values)
                     {
                         foreach( var headerdata2 in listHeaderData2) {
                             var header2 = headerdata2.GetHeader();
@@ -176,14 +171,7 @@ namespace VCResourceManager.ResourceFilter
                                     continue;
 
                                 if ( body1.Length == body2.Length ) {
-
-                                    bFind = true;
-                                    for( int it=0; it<body1.Length; ++it ) {
-                                        if( body1[it] != body2[it] ) {
-                                            bFind = false;
-                                            break;
-                                        }
-                                    }
+                                    bFind = !body1.Where((t, it) => t != body2[it]).Any();
                                 }
                             }
                         }

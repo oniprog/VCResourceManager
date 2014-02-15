@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.IO;
 
@@ -8,138 +9,126 @@ namespace VCResourceManager.ResourceFilter
     // .rcファイルを追加する
     public class ResourceAddRcFilter : ResourceFilterBase
     {
-        private StreamWriter mSW = null;
-        private String mCommonFolder;
-        private String mLang;
-        private bool mOutputFlag;
-        private ResourceFileMaster.EMode mMode;
+        private readonly StreamWriter _mSw;
+        private readonly String _mCommonFolder;
+        private String _mLang;
+        private bool _mOutputFlag;
+        private ResourceFileMaster.EMode _mMode;
 
-        private FileInfo[] mListCommonFile;
+        private readonly FileInfo[] _mListCommonFile;
 
-        private HashSet<string> mSetSelected;
-        bool[] bFirstFlag = new bool[3];
-        private String strBeforeLine = "";
+        private readonly HashSet<string> _mSetSelected;
+        private readonly bool[] _bFirstFlag = new bool[3];
+        private String _strBeforeLine = "";
 
         public ResourceAddRcFilter(String strOutputPath, String strCommonFolder, HashSet<string> setSelected)
         {
-            mSW = new StreamWriter(strOutputPath, false, Encoding.Unicode);
-            mCommonFolder = strCommonFolder;
-            mOutputFlag = true;
-            mSetSelected = setSelected;
+            _mSw = new StreamWriter(strOutputPath, false, Encoding.Unicode);
+            _mCommonFolder = strCommonFolder;
+            _mOutputFlag = true;
+            _mSetSelected = setSelected;
 
-            mListCommonFile = new DirectoryInfo(mCommonFolder).GetFiles("*.txt");
-            bFirstFlag[0] = bFirstFlag[1] = bFirstFlag[2] = true;
+            _mListCommonFile = new DirectoryInfo(_mCommonFolder).GetFiles("*.txt");
+            _bFirstFlag[0] = _bFirstFlag[1] = _bFirstFlag[2] = true;
         }
 
         public override void Process(String strLine, ResourceFileMaster.EMode mode)
         {
-            if (!mOutputFlag)
+            if (!_mOutputFlag)
             {
-                if (mMode == mode)
+                if (_mMode == mode)
                     return;
-                mOutputFlag = true;
+                _mOutputFlag = true;
             }
 
             // 連続する空行は出力しない
-            if (strBeforeLine.Length == 0 && strLine.Length == 0)
+            if (_strBeforeLine.Length == 0 && strLine.Length == 0)
                 return;
 
-            mSW.WriteLine(strLine);
-            strBeforeLine = strLine;
+            _mSw.WriteLine(strLine);
+            _strBeforeLine = strLine;
         }
         public override void BeginLang(String strLang)
         {
-            mLang = strLang;
-            bFirstFlag[0] = bFirstFlag[1] = bFirstFlag[2] = true;
+            _mLang = strLang;
+            _bFirstFlag[0] = _bFirstFlag[1] = _bFirstFlag[2] = true;
         }
         public override void BeginOutputName(ResourceFileMaster.EMode mode, String strOutputName)
         {
-            if (mSetSelected.Contains(strOutputName))
+            if (_mSetSelected.Contains(strOutputName))
             {
                 // 選択されたファイルは追加されるのでコピーはしない
-                mOutputFlag = false;
-                mMode = mode;
+                _mOutputFlag = false;
+                _mMode = mode;
             }
 
             // 追加するかをチェックする
-            String strNumber = "";
+            String strNumber;
             if (mode == ResourceFileMaster.EMode.InDialogIn1)
             {
-                if (!bFirstFlag[0])
+                if (!_bFirstFlag[0])
                     return;
-                bFirstFlag[0] = false;
+                _bFirstFlag[0] = false;
                 strNumber = "1";
 
             }
             else if (mode == ResourceFileMaster.EMode.InDialogInfoIn1)
             {
-                if (!bFirstFlag[1])
+                if (!_bFirstFlag[1])
                     return;
-                bFirstFlag[1] = false;
+                _bFirstFlag[1] = false;
                 strNumber = "2";
             }
             else if (mode == ResourceFileMaster.EMode.InDesignInfoIn1)
             {
-                if (!bFirstFlag[2])
+                if (!_bFirstFlag[2])
                     return;
-                bFirstFlag[2] = false;
+                _bFirstFlag[2] = false;
                 strNumber = "3";
             }
             else
                 return;
 
             // 指定ファイルをすべて追加する
-            foreach (var strFilename in mSetSelected)
+            foreach (var strFilename in _mSetSelected)
             {
 
                 if (!IsExistFile(strFilename))
                     continue;
 
-                String strCheckName = mLang + "." + strNumber + "." + strFilename;
                 OutputExistFile(strFilename, strNumber);
-                mSW.WriteLine();
+                _mSw.WriteLine();
             }
         }
 
         // 対応ファイルの存在確認
         private bool IsExistFile(String strOutputName)
         {
-            foreach (var strFile in mListCommonFile)
-            {
-                var split = strFile.Name.Split('.');
-                if (split.Length != 4)
-                    continue;
-
-                var strHead = split[0];
-                if (strHead == strOutputName)
-                    return true;
-            }
-
-            return false;
+            return (from strFile in _mListCommonFile select strFile.Name.Split('.') into split where split.Length == 4 select split[0]).Any(strHead => strHead == strOutputName);
         }
 
         // 対応ファイルの出力
         private void OutputExistFile(String strOutputName, String strNumber)
         {
-            var strSearchName = mCommonFolder + @"\" + strOutputName + "." + strNumber + "." + mLang + ".txt";
+            var strSearchName = _mCommonFolder + @"\" + strOutputName + "." + strNumber + "." + _mLang + ".txt";
             if (!File.Exists(strSearchName))
                 return;
 
-            using (StreamReader sr = new StreamReader(strSearchName, Encoding.UTF8))
+            using (var sr = new StreamReader(strSearchName, Encoding.UTF8))
             {
                 while (true)
                 {
                     String strLine = sr.ReadLine();
                     if (strLine == null)
                         break;
-                    mSW.WriteLine(strLine);
+                    _mSw.WriteLine(strLine);
                 }
             }
         }
 
         public override void EndProcess()
         {
-            this.mSW.Close();
+            _mSw.Close();
         }
     }
 }
